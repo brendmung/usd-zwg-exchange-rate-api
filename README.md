@@ -2,8 +2,6 @@
 
 Free API for Zimbabwe exchange rates from the Reserve Bank of Zimbabwe.
 
-![License](https://img.shields.io/badge/license-MIT-green)
-![Vercel](https://img.shields.io/badge/deployed%20on-Vercel-black)
 
 ## Features
 
