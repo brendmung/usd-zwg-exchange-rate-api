@@ -63,11 +63,24 @@ def scrape_rbz_rates():
             }
 
         # Extract date
-        date_text = None
+        date_text_raw = None
         header_text = target_tab.get_text(" ", strip=True)
         date_match = re.search(r'EXCHANGE RATES\s+([\d-]+)', header_text)
         if date_match:
-            date_text = date_match.group(1)
+            date_text_raw = date_match.group(1)
+
+        # --- FIX STARTS HERE ---
+        formatted_date = None
+        if date_text_raw:
+            try:
+                # First, parse the raw date string from the website (e.g., "19-12-2025")
+                parsed_dt = datetime.strptime(date_text_raw, "%d-%m-%Y")
+                # Then, format it into YYYY-MM-DD for consistency with API and DB
+                formatted_date = parsed_dt.strftime("%Y-%m-%d")
+            except ValueError:
+                print(f"Warning: Could not parse date '{date_text_raw}' with %d-%m-%Y format. Keeping original.")
+                formatted_date = date_text_raw # Fallback if parsing fails
+        # --- FIX ENDS HERE ---
 
         # Parse rates
         rates = {}
@@ -100,7 +113,7 @@ def scrape_rbz_rates():
 
         return {
             "success": True,
-            "date": date_text,
+            "date": formatted_date, # Use the YYYY-MM-DD formatted date here
             "rates": rates,
             "scraped_at": datetime.now(timezone.utc).isoformat()
         }
@@ -125,7 +138,8 @@ def save_to_mongodb(data):
 
         # Create document
         doc = {
-            "date": data["date"],
+            "date": data["date"], # This is now already YYYY-MM-DD
+            # So this line will now correctly parse it as YYYY-MM-DD
             "date_parsed": datetime.strptime(data["date"], "%Y-%m-%d") if data["date"] else None,
             "rates": data["rates"],
             "scraped_at": datetime.now(timezone.utc),
