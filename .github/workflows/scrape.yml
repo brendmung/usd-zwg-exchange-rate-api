@@ -1,0 +1,40 @@
+name: Scrape RBZ Rates
+
+on:
+  # Run weekdays at 8 AM UTC
+  schedule:
+    - cron: '0 8 * * 1-5'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd scraper
+          pip install -r requirements.txt
+
+      - name: Run scraper
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: |
+          cd scraper
+          python scrape.py
+
+      - name: Report status
+        if: failure()
+        run: |
+          echo "❌ Scraping failed!"
+          echo "Check the logs above for details."
