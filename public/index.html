@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RBZ Rates API | Zimbabwe Exchange Rates</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --card: #111;
+            --border: #222;
+            --text: #eee;
+            --muted: #888;
+            --accent: #f59e0b;
+            --up: #10b981;
+            --down: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; }
+
+        header { margin-bottom: 4rem; }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: #1a1a1a; border: 1px solid var(--border);
+            padding: 4px 12px; border-radius: 99px; font-size: 0.8rem; color: var(--muted);
+        }
+        .dot { width: 8px; height: 8px; background: var(--up); border-radius: 50%; }
+
+        h1 { font-size: 3rem; font-weight: 800; margin: 1rem 0; letter-spacing: -1px; }
+        .tagline { font-size: 1.2rem; color: var(--muted); max-width: 600px; }
+
+        .grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem; margin-bottom: 4rem;
+        }
+        .rate-card {
+            background: var(--card); border: 1px solid var(--border);
+            padding: 1.5rem; border-radius: 12px;
+        }
+        .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; }
+        .value { font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; margin: 0.5rem 0; color: var(--accent); }
+        .change { font-size: 0.9rem; font-weight: 600; }
+        .change.pos { color: var(--up); }
+        .change.neg { color: var(--down); }
+
+        section { margin-bottom: 4rem; }
+        h2 { font-size: 1.5rem; margin-bottom: 1.5rem; border-left: 4px solid var(--accent); padding-left: 1rem; }
+
+        .api-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden; margin-bottom: 1rem;
+        }
+        .api-header {
+            padding: 1rem; background: #181818; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .method { background: #333; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 0.7rem; }
+        .url { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--accent); margin-left: 8px; }
+
+        .copy-btn {
+            background: transparent; border: 1px solid var(--border); color: var(--text);
+            padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+        }
+        .copy-btn:hover { background: #222; }
+
+        .api-body { padding: 1rem; color: var(--muted); font-size: 0.9rem; }
+        code { background: #222; padding: 2px 5px; border-radius: 4px; color: #eee; }
+
+        pre {
+            background: #000; padding: 1.5rem; border-radius: 12px;
+            overflow-x: auto; border: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+        }
+        .key { color: #a5d6ff; }
+        .string { color: #ffa657; }
+
+        footer { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 4rem; }
+        a { color: var(--accent); text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div id="statusBadge" class="status-badge"><div class="dot"></div> Operational</div>
+        <h1>RBZ Rates API</h1>
+        <p class="tagline">Exchange rates for the Zimbabwe Gold (ZWG) sourced daily from the Reserve Bank of Zimbabwe.</p>
+        <p id="lastFetched" style="font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem;"></p>
+    </header>
+
+    <section>
+        <h2>Current Market Rates (ZWG)</h2>
+        <div id="ratesGrid" class="grid">
+            <div class="rate-card" style="grid-column: 1/-1; text-align: center; color: var(--muted);">
+                Loading market data...
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Documentation</h2>
+
+        <!-- Latest -->
+        <div class="api-card">
+            <div class="api-header">
+                <div><span class="method">GET</span><span class="url">/api/rates</span></div>
+                <button class="copy-btn" onclick="copyText('/api/rates')">Copy</button>
+            </div>
+            <div class="api-body">
+                Returns the most recent exchange rates with 24h percentage change.
+            </div>
+        </div>
+
+        <!-- Historical -->
+        <div class="api-card">
+            <div class="api-header">
+                <div><span class="method">GET</span><span class="url">/api/rates?date=YYYY-MM-DD</span></div>
+                <button class="copy-btn" onclick="copyText('/api/rates?date=2024-12-25')">Copy</button>
+            </div>
+            <div class="api-body">
+                Fetch <b>historical data</b> for any specific day. Example: <code>/api/rates?date=2024-12-25</code>
+            </div>
+        </div>
+
+        <!-- Custom Period -->
+        <div class="api-card">
+            <div class="api-header">
+                <div><span class="method">GET</span><span class="url">/api/rates?period=7d</span></div>
+                <button class="copy-btn" onclick="copyText('/api/rates?period=7d')">Copy</button>
+            </div>
+            <div class="api-body">
+                Change the percentage comparison period. Options: <code>1d</code>, <code>7d</code>, <code>30d</code>, <code>1y</code>.
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Response Structure</h2>
+        <pre>
+{
+  <span class="key">"success"</span>: <span class="string">true</span>,
+  <span class="key">"base"</span>: <span class="string">"ZWG"</span>,
+  <span class="key">"date"</span>: <span class="string">"2025-01-15"</span>,
+  <span class="key">"rates"</span>: {
+    <span class="key">"USD"</span>: {
+      <span class="key">"bid"</span>: <span class="string">24.9810</span>,
+      <span class="key">"ask"</span>: <span class="string">25.3210</span>,
+      <span class="key">"avg"</span>: <span class="string">25.1234</span>,
+      <span class="key">"percent_change"</span>: <span class="string">1.05</span>
+    }
+  }
+}</pre>
+    </section>
+
+    <footer>
+        Data sourced from <a href="https://rbz.co.zw" target="_blank">RBZ</a>. <br>
+    </footer>
+</div>
+
+<script>
+    // Zimbabwean Public Holidays (Fixed Dates)
+    const ZIM_HOLIDAYS = [
+        '01-01', // New Year
+        '02-21', // Youth Day
+        '04-18', // Independence Day
+        '05-01', // Workers Day
+        '05-25', // Africa Day
+        '12-22', // Unity Day
+        '12-25', // Christmas
+        '12-26', // Boxing Day
+    ];
+
+    function checkMarketStatus() {
+        const now = new Date();
+        const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+        const monthDay = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        const badge = document.getElementById('statusBadge');
+        const isWeekend = (day === 0 || day === 6);
+        const isHoliday = ZIM_HOLIDAYS.includes(monthDay);
+
+        if (isWeekend || isHoliday) {
+            badge.innerHTML = `<div class="dot" style="background: var(--muted)"></div> Market Closed (${isWeekend ? 'Weekend' : 'Public Holiday'})`;
+            badge.style.borderColor = 'transparent';
+        } else {
+            badge.innerHTML = `<div class="dot"></div>`;
+        }
+    }
+
+    async function loadRates() {
+        checkMarketStatus();
+        const grid = document.getElementById('ratesGrid');
+        const lastFetchedEl = document.getElementById('lastFetched');
+
+        try {
+            const res = await fetch('/api/rates');
+            const data = await res.json();
+            if (!data.success) throw new Error();
+
+            // Display Last Fetched Date
+            if (data.last_updated) {
+                const date = new Date(data.last_updated);
+                lastFetchedEl.innerText = `Last fetched: ${date.toLocaleString()}`;
+            }
+
+            grid.innerHTML = Object.entries(data.rates).slice(0, 4).map(([code, val]) => {
+                const isPos = val.percent_change > 0;
+                const isNeg = val.percent_change < 0;
+                const changeClass = isPos ? 'pos' : (isNeg ? 'neg' : '');
+                const prefix = isPos ? '+' : '';
+
+                return `
+                    <div class="rate-card">
+                        <div class="label">1 ${code} to ZWG</div>
+                        <div class="value">${val.avg.toFixed(4)}</div>
+                        <div class="change ${changeClass}">
+                            ${prefix}${val.percent_change}% <span style="font-size: 0.7rem; opacity: 0.5">24h</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            grid.innerHTML = '<div style="color: var(--down)">Market data currently unavailable.</div>';
+        }
+    }
+
+    loadRates();
+</script>
+
+</body>
+</html>

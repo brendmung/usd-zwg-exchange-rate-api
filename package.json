@@ -1,0 +1,28 @@
+{
+  "name": "rbz-rates-api",
+  "version": "1.0.0",
+  "description": "Free API for Zimbabwe exchange rates from Reserve Bank of Zimbabwe",
+  "main": "api/rates.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "zimbabwe",
+    "exchange-rates",
+    "rbz",
+    "api",
+    "currency",
+    "zwg",
+    "usd"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "mongodb": "^6.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
