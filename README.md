@@ -1,6 +1,6 @@
 # RBZ Rates API
 
-Free API for Zimbabwe exchange rates from the Reserve Bank of Zimbabwe.
+API for Zimbabwe exchange rates from the RBZ website.
 
 
 ## Features
