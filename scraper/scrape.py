@@ -62,25 +62,21 @@ def scrape_rbz_rates():
                 "suggestion": "Site may be blocked by WAF"
             }
 
-        # Extract date
+        # Extract date (existing fix)
         date_text_raw = None
         header_text = target_tab.get_text(" ", strip=True)
         date_match = re.search(r'EXCHANGE RATES\s+([\d-]+)', header_text)
         if date_match:
             date_text_raw = date_match.group(1)
 
-        # --- FIX STARTS HERE ---
         formatted_date = None
         if date_text_raw:
             try:
-                # First, parse the raw date string from the website (e.g., "19-12-2025")
                 parsed_dt = datetime.strptime(date_text_raw, "%d-%m-%Y")
-                # Then, format it into YYYY-MM-DD for consistency with API and DB
                 formatted_date = parsed_dt.strftime("%Y-%m-%d")
             except ValueError:
                 print(f"Warning: Could not parse date '{date_text_raw}' with %d-%m-%Y format. Keeping original.")
-                formatted_date = date_text_raw # Fallback if parsing fails
-        # --- FIX ENDS HERE ---
+                formatted_date = date_text_raw
 
         # Parse rates
         rates = {}
@@ -93,27 +89,84 @@ def scrape_rbz_rates():
                 def get_clean_val(element):
                     return element.get_text(strip=True).replace('\u00a0', '').strip()
 
-                raw_currency = get_clean_val(cols[0])
+                raw_currency_label = get_clean_val(cols[0])
 
-                if "CURRENCY" in raw_currency.upper() or not raw_currency:
+                if "CURRENCY" in raw_currency_label.upper() or not raw_currency_label:
                     continue
 
-                currency_key = raw_currency.replace(":", "").strip()
+                # --- NEW FIX STARTS HERE (Currency Consistency) ---
+                currency_code = raw_currency_label.replace(":", "").strip().upper()
+                is_inverse_pair = False # Flag if the rate is 1 ZWG = X Foreign (needs inversion)
 
-                bid = get_clean_val(cols[1]).replace(" ", "").replace(",", "")
-                ask = get_clean_val(cols[2]).replace(" ", "").replace(",", "")
-                avg = get_clean_val(cols[3]).replace(" ", "").replace(",", "")
+                if "/" in currency_code:
+                    parts = currency_code.split('/')
+                    if len(parts) == 2:
+                        first_part = parts[0].strip()
+                        second_part = parts[1].strip()
 
-                if re.match(r'[\d.]+', avg):
-                    rates[currency_key] = {
-                        "bid": float(bid) if bid else 0,
-                        "ask": float(ask) if ask else 0,
-                        "avg": float(avg) if avg else 0
+                        if second_part == "ZWG": # e.g., "USD/ZWG" -> target "USD"
+                            currency_code = first_part
+                            is_inverse_pair = False
+                        elif first_part == "ZWG": # e.g., "ZWG/ZAR" -> target "ZAR", needs inversion
+                            currency_code = second_part
+                            is_inverse_pair = True
+                        else:
+                            # Unexpected format, fallback to original key (e.g. "AUD/CAD") but simplified
+                            print(f"Warning: Unexpected currency pair format: {raw_currency_label}")
+                            currency_code = currency_code.replace("/ZWG", "").replace("ZWG/", "")
+                    else:
+                        print(f"Warning: Unexpected currency label format with multiple slashes: {raw_currency_label}")
+                        # Fallback for malformed strings
+                        currency_code = currency_code.replace("/ZWG", "").replace("ZWG/", "")
+
+                # Parse numeric values, ensuring they are valid numbers
+                bid_str = get_clean_val(cols[1]).replace(" ", "").replace(",", "")
+                ask_str = get_clean_val(cols[2]).replace(" ", "").replace(",", "")
+                avg_str = get_clean_val(cols[3]).replace(" ", "").replace(",", "")
+
+                # Only proceed if avg_str is a valid number to avoid errors
+                if not re.match(r'^-?\d+(\.\d+)?$', avg_str):
+                    print(f"Warning: Invalid average rate '{avg_str}' for {raw_currency_label}. Skipping.")
+                    continue
+
+                original_bid = float(bid_str) if re.match(r'^-?\d+(\.\d+)?$', bid_str) else 0
+                original_ask = float(ask_str) if re.match(r'^-?\d+(\.\d+)?$', ask_str) else 0
+                original_avg = float(avg_str)
+
+                if is_inverse_pair:
+                    # If original rate is 1 ZWG = X Foreign (e.g., ZWG/ZAR = 0.6421),
+                    # we want 1 Foreign = 1/X ZWG.
+                    #
+                    # old_bid: RBZ pays this much FOREIGN for 1 ZWG. (1 ZWG = old_bid FOREIGN)
+                    # old_ask: RBZ sells 1 ZWG for this much FOREIGN. (1 ZWG = old_ask FOREIGN)
+                    #
+                    # For 1 FOREIGN = X ZWG:
+                    # New bid (what ZWG gets for 1 Foreign): 1 / old_ask (of ZWG/FOREIGN)
+                    # New ask (what ZWG pays for 1 Foreign): 1 / old_bid (of ZWG/FOREIGN)
+
+                    # Guard against division by zero
+                    new_bid = 1 / original_ask if original_ask != 0 else 0
+                    new_ask = 1 / original_bid if original_bid != 0 else 0
+                    new_avg = 1 / original_avg if original_avg != 0 else 0
+
+                    rates[currency_code] = {
+                        "bid": float(f"{new_bid:.4f}"),
+                        "ask": float(f"{new_ask:.4f}"),
+                        "avg": float(f"{new_avg:.4f}")
                     }
+                else:
+                    # Rates are already in the 1 FOREIGN_CURRENCY = X ZWG format
+                    rates[currency_code] = {
+                        "bid": float(f"{original_bid:.4f}"),
+                        "ask": float(f"{original_ask:.4f}"),
+                        "avg": float(f"{original_avg:.4f}")
+                    }
+                # --- NEW FIX ENDS HERE ---
 
         return {
             "success": True,
-            "date": formatted_date, # Use the YYYY-MM-DD formatted date here
+            "date": formatted_date,
+            "base": "ZWG", # Added for consistency with API response
             "rates": rates,
             "scraped_at": datetime.now(timezone.utc).isoformat()
         }
@@ -139,7 +192,6 @@ def save_to_mongodb(data):
         # Create document
         doc = {
             "date": data["date"], # This is now already YYYY-MM-DD
-            # So this line will now correctly parse it as YYYY-MM-DD
             "date_parsed": datetime.strptime(data["date"], "%Y-%m-%d") if data["date"] else None,
             "rates": data["rates"],
             "scraped_at": datetime.now(timezone.utc),
@@ -189,7 +241,7 @@ def main():
         # Print rates summary
         print("\n📊 Rates Summary:")
         for currency, rate in data["rates"].items():
-            print(f"   {currency}: {rate['avg']}")
+            print(f"   {currency}: Bid={rate['bid']:.4f}, Ask={rate['ask']:.4f}, Avg={rate['avg']:.4f}")
 
         # Save to MongoDB
         print("\n💾 Saving to MongoDB...")
