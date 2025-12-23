@@ -4,9 +4,7 @@
   "description": "Free API for Zimbabwe exchange rates from Reserve Bank of Zimbabwe",
   "main": "api/rates.js",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "vercel build",
-    "deploy": "vercel --prod"
+    "dev": "vercel dev"
   },
   "keywords": [
     "zimbabwe",
