@@ -21,7 +21,7 @@ GET /api/rates
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `date` | string | Specific date (YYYY-MM-DD) for historical data |
-| `currency` | string | Filter by currency code (e.g., USD) |
+| `currency` | string | Filter by currency code (e.g., USD, ZAR) |
 | `period` | string | Percentage change period: `1d`, `7d`, `30d`, `1y` (default: `1d`) |
 
 **Example Response:**
