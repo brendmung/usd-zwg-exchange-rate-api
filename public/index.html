@@ -94,7 +94,7 @@
 <div class="container">
     <header>
         <div id="statusBadge" class="status-badge"><div class="dot"></div> Operational</div>
-        <h1>RBZ Rates API</h1>
+        <h1>ZWG Rates API</h1>
         <p class="tagline">Exchange rates for the Zimbabwe Gold (ZWG) sourced daily from the Reserve Bank of Zimbabwe.</p>
         <p id="lastFetched" style="font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem;"></p>
     </header>
@@ -136,11 +136,11 @@
         <!-- Custom Period -->
         <div class="api-card">
             <div class="api-header">
-                <div><span class="method">GET</span><span class="url">/api/rates?period=7d</span></div>
-                <button class="copy-btn" onclick="copyText('/api/rates?period=7d')">Copy</button>
+                <div><span class="method">GET</span><span class="url">/api/rates?currency=USD</span></div>
+                <button class="copy-btn" onclick="copyText('/api/rates?currency=USD')">Copy</button>
             </div>
             <div class="api-body">
-                Change the percentage comparison period. Options: <code>1d</code>, <code>7d</code>, <code>30d</code>, <code>1y</code>.
+               Get the current ZWG exchange rate for a specified currency. Options: <code>USD</code>, <code>ZAR</code>, <code>BWP</code>, <code>EUR</code>.
             </div>
         </div>
     </section>
