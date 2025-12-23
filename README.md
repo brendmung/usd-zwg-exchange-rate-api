@@ -189,4 +189,4 @@ No rate limits currently. Please be respectful and cache responses when possible
 
 ## Data Source
 
-All exchange rate data is sourced from the [Reserve Bank of Zimbabwe](https://www.rbz.co.zw) official website.
+All exchange rate data is sourced from the [RBZ](https://www.rbz.co.zw).
