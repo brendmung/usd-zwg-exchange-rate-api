@@ -1,6 +1,6 @@
-# 🇿🇼 RBZ Rates API
+# RBZ Rates API
 
-Free, open-source API for Zimbabwe exchange rates from the Reserve Bank of Zimbabwe.
+Free API for Zimbabwe exchange rates from the Reserve Bank of Zimbabwe.
 
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Vercel](https://img.shields.io/badge/deployed%20on-Vercel-black)
@@ -9,13 +9,11 @@ Free, open-source API for Zimbabwe exchange rates from the Reserve Bank of Zimba
 
 - ✅ **Daily Updates** - Automated scraping via GitHub Actions
 - ✅ **Historical Data** - Query rates for any past date
-- ✅ **Percentage Changes** - Calculate rate changes over custom periods
-- ✅ **Free & Open Source** - No API keys required
-- ✅ **Fast & Reliable** - Deployed on Vercel Edge
+- ✅ **Flexible Period Comparisons** - Calculate rate changes over custom periods
 
 ## API Endpoints
 
-### Get Current Rates
+### Get Current or Historical Rates
 
 ```
 GET /api/rates
@@ -24,80 +22,51 @@ GET /api/rates
 **Query Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `date` | string | Specific date (YYYY-MM-DD) |
-| `currency` | string | Filter by currency (e.g., USD) |
+| `date` | string | Specific date (YYYY-MM-DD) for historical data |
+| `currency` | string | Filter by currency code (e.g., USD) |
+| `period` | string | Percentage change period: `1d`, `7d`, `30d`, `1y` (default: `1d`) |
 
 **Example Response:**
 ```json
 {
   "success": true,
+  "base": "ZWG",
   "date": "2025-01-15",
-  "source": "rbz.co.zw",
+  "last_updated": "2025-01-15T08:30:00.000Z",
   "rates": {
-    "USD": { "bid": 24.9, "ask": 25.1, "avg": 25.0 },
-    "GBP": { "bid": 31.4, "ask": 31.6, "avg": 31.5 }
-  }
-}
-```
-
-### Get Rate Changes
-
-```
-GET /api/changes
-```
-
-**Query Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `period` | string | Preset: `1d`, `7d`, `30d`, `90d`, `1y` |
-| `from` | string | Custom start date (YYYY-MM-DD) |
-| `to` | string | Custom end date (YYYY-MM-DD) |
-| `currency` | string | Filter by currency |
-
-**Example Response:**
-```json
-{
-  "success": true,
-  "period": "7d",
-  "from": "2024-01-08",
-  "to": "2024-01-15",
-  "changes": {
     "USD": {
-      "start": { "date": "2024-01-08", "rate": 24.5 },
-      "end": { "date": "2024-01-15", "rate": 25.0 },
-      "change": 0.5,
-      "percent_change": 2.04,
-      "direction": "up"
+      "bid": 24.9810,
+      "ask": 25.3210,
+      "avg": 25.1234,
+      "percent_change": 1.05
+    },
+    "ZAR": {
+      "bid"	1.5191,
+      "ask"	1.5977,
+      "avg":	1.5574,
+      "percent_change": -0.32
     }
   }
 }
 ```
 
-### Get Historical Rates
+**Usage Examples:**
 
-```
-GET /api/historical
-```
+```bash
+# Get latest rates with 24h change
+curl https://localhost:3000/api/rates
 
-**Query Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `from` | string | - | Start date (YYYY-MM-DD) |
-| `to` | string | - | End date (YYYY-MM-DD) |
-| `currency` | string | - | Filter by currency |
-| `limit` | number | 30 | Max results (max: 365) |
-| `skip` | number | 0 | Offset for pagination |
+# Get rates for specific date
+curl https://localhost:3000/api/rates?date=2024-12-25
 
-### List Available Dates
+# Get latest rates with 7-day percentage change
+curl https://localhost:3000/api/rates?period=7d
 
-```
-GET /api/dates
-```
+# Filter by currency
+curl https://localhost:3000/api/rates?currency=USD
 
-### List Available Currencies
-
-```
-GET /api/currencies
+# Combine parameters
+curl https://localhost:3000/api/rates?period=30d&currency=USD
 ```
 
 ## Quick Start
@@ -105,8 +74,8 @@ GET /api/currencies
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/rbz-rates-api.git
-cd rbz-rates-api
+git clone https://github.com/brendmung//rbz-exchange-rates-api.git
+cd rbz-exchange-rates-api
 ```
 
 ### 2. Set Up MongoDB
@@ -134,22 +103,12 @@ npm run dev
 
 Visit `http://localhost:3000` to see the landing page.
 
-## Deployment
-
-### Deploy to Vercel
-
-1. Push to GitHub
-2. Import project in [Vercel](https://vercel.com)
-3. Add environment variable:
-   - `MONGODB_URI` = your MongoDB connection string
-4. Deploy!
-
 ### Set Up GitHub Actions
 
 1. Go to **Settings > Secrets and variables > Actions**
 2. Add secret:
    - `MONGODB_URI` = your MongoDB connection string
-3. The scraper runs daily at 10:00 UTC
+3. The scraper runs weekdays at 8:00 AM UTC
 
 To run manually: **Actions > Scrape RBZ Rates > Run workflow**
 
@@ -160,11 +119,7 @@ rbz-rates-api/
 ├── .github/workflows/
 │   └── scrape.yml          # Daily scraper workflow
 ├── api/
-│   ├── rates.js            # Current/dated rates
-│   ├── changes.js          # Percentage changes
-│   ├── historical.js       # Historical data
-│   ├── dates.js            # Available dates
-│   └── currencies.js       # Available currencies
+│   └── rates.js            # Main API endpoint
 ├── lib/
 │   └── mongodb.js          # Database connection
 ├── public/
@@ -182,15 +137,20 @@ rbz-rates-api/
 ### JavaScript/TypeScript
 
 ```javascript
-// Fetch latest rates
-const response = await fetch('https://your-app.vercel.app/api/rates');
+// Fetch latest rates with 24h change
+const response = await fetch('https://localhost:3000/api/rates');
 const { rates } = await response.json();
 console.log(`USD Rate: ${rates.USD.avg}`);
 
 // Get 30-day change for USD
-const changes = await fetch('https://your-app.vercel.app/api/changes?period=30d&currency=USD');
+const changes = await fetch('https://localhost:3000/api/rates?period=30d&currency=USD');
 const data = await changes.json();
-console.log(`USD changed ${data.changes.USD.percent_change}% over 30 days`);
+console.log(`USD changed ${data.rates.USD.percent_change}% over 30 days`);
+
+// Get historical rates for specific date
+const historical = await fetch('https://localhost:3000/api/rates?date=2024-01-15');
+const histData = await historical.json();
+console.log(`USD on 2024-01-15: ${histData.rates.USD.avg}`);
 ```
 
 ### Python
@@ -198,23 +158,31 @@ console.log(`USD changed ${data.changes.USD.percent_change}% over 30 days`);
 ```python
 import requests
 
-# Get rates for specific date
-response = requests.get(
-    'https://your-app.vercel.app/api/rates',
-    params={'date': '2024-01-15'}
-)
+# Get latest rates
+response = requests.get('https://localhost:3000/api/rates')
 data = response.json()
 print(data['rates'])
+
+# Get rates for specific date with 7-day change
+response = requests.get(
+    'https://localhost:3000/api/rates',
+    params={'date': '2024-01-15', 'period': '7d'}
+)
+data = response.json()
+print(f"USD: {data['rates']['USD']['avg']} ({data['rates']['USD']['percent_change']}%)")
 ```
 
 ### cURL
 
 ```bash
 # Latest rates
-curl https://your-app.vercel.app/api/rates
+curl https://localhost:3000/api/rates
 
-# Historical with date range
-curl "https://your-app.vercel.app/api/historical?from=2024-01-01&to=2024-01-31"
+# Specific date with 30-day comparison
+curl "https://localhost:3000/api/rates?date=2024-01-31&period=30d"
+
+# Filter by currency with yearly change
+curl "https://localhost:3000/api/rates?currency=USD&period=1y"
 ```
 
 ## Rate Limits
@@ -225,3 +193,6 @@ No rate limits currently. Please be respectful and cache responses when possible
 
 All exchange rate data is sourced from the [Reserve Bank of Zimbabwe](https://www.rbz.co.zw) official website.
 
+## License
+
+MIT
